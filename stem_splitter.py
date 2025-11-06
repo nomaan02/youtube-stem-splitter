@@ -64,7 +64,7 @@ Examples:
         logger.error(f"Insufficient disk space! Need at least {config.MIN_FREE_SPACE_GB}GB free.")
         sys.exit(1)
 
-    logger.info("✓ All checks passed")
+    logger.info("[OK] All checks passed")
 
     # Initialize components
     downloader = AudioDownloader(config.TEMP_DIR, config.MAX_RETRIES)
@@ -132,7 +132,7 @@ Examples:
                 download_result['filepath']
             )
 
-            logger.info(f"✓ Complete! Output: {output_folder}")
+            logger.info(f"[SUCCESS] Complete! Output: {output_folder}")
 
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}", exc_info=True)

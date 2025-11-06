@@ -1,10 +1,11 @@
 import torch
+import torchaudio
 import logging
 from pathlib import Path
 from demucs.pretrained import get_model
 from demucs.apply import apply_model
-from demucs.audio import save_audio
-import torchaudio
+import soundfile as sf
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,17 @@ class StemSeparator:
         logger.info(f"Separating: {audio_path.name}")
 
         try:
-            # Load audio
-            wav, sr = torchaudio.load(str(audio_path))
+            # Load audio using soundfile
+            wav_np, sr = sf.read(str(audio_path), dtype='float32')
+
+            # Convert to torch tensor
+            wav = torch.from_numpy(wav_np.T)  # Transpose to (channels, time)
+
+            # Ensure stereo
+            if wav.dim() == 1:
+                wav = wav.unsqueeze(0).repeat(2, 1)  # Convert mono to stereo
+            elif wav.shape[0] == 1:
+                wav = wav.repeat(2, 1)  # Convert mono to stereo
 
             # Resample if necessary
             if sr != self.model.samplerate:
@@ -47,9 +57,8 @@ class StemSeparator:
                 resampler = torchaudio.transforms.Resample(sr, self.model.samplerate)
                 wav = resampler(wav)
 
-            # Ensure correct shape (1, channels, time) or (channels, time)
-            if wav.dim() == 2:
-                wav = wav.unsqueeze(0)  # Add batch dimension
+            # Add batch dimension (1, channels, time)
+            wav = wav.unsqueeze(0)
 
             # Move to device
             wav = wav.to(self.device)
@@ -65,12 +74,9 @@ class StemSeparator:
 
             for source, name in zip(sources, stem_names):
                 output_path = output_dir / f"{name}.wav"
-                # Convert to CPU and save
-                save_audio(
-                    source.cpu(),
-                    str(output_path),
-                    samplerate=self.model.samplerate
-                )
+                # Convert to CPU and numpy, then save with soundfile
+                audio_np = source.cpu().numpy().T  # Transpose back to (time, channels)
+                sf.write(str(output_path), audio_np, self.model.samplerate, subtype='PCM_16')
                 stem_files[name] = output_path
                 logger.info(f"Saved: {name}.wav")
 

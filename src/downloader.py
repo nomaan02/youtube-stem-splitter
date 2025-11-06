@@ -14,23 +14,28 @@ class AudioDownloader:
         """Download audio from URL with retry logic"""
         logger.info(f"Starting download from: {url}")
 
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'wav',
-            }],
-            'outtmpl': str(self.output_dir / '%(title)s.%(ext)s'),
-            'quiet': False,
-            'no_warnings': False,
-            'retries': self.max_retries,
-            'fragment_retries': self.max_retries,
-        }
-
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
+            # First, extract info to get the title
+            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                info = ydl.extract_info(url, download=False)
                 title = sanitize_filename(info['title'])
+
+            # Now download with sanitized filename
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'wav',
+                }],
+                'outtmpl': str(self.output_dir / f'{title}.%(ext)s'),
+                'quiet': False,
+                'no_warnings': False,
+                'retries': self.max_retries,
+                'fragment_retries': self.max_retries,
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
                 filepath = self.output_dir / f"{title}.wav"
 
                 logger.info(f"Download complete: {title}")
