@@ -7,11 +7,12 @@ setup(
     install_requires=[
         "demucs==4.0.1",
         "yt-dlp==2024.10.7",
-        "torch==2.1.2",
-        "torchaudio==2.1.2",
-        "tqdm==4.66.1",
-        "pydub==0.25.1",
-        "requests==2.31.0",
+        "torch>=2.1.0",
+        "torchaudio>=2.1.0",
+        "soundfile>=0.13.0",
+        "tqdm>=4.66.0",
+        "pydub>=0.25.1",
+        "requests>=2.32.2",
     ],
     entry_points={
         'console_scripts': [
