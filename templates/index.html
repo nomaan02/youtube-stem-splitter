@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stem Splitter Pro</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>🎵 Stem Splitter Pro</h1>
+            <button id="darkModeToggle" class="btn-icon" title="Toggle dark mode">🌙</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Single URL Processing Card -->
+        <section class="card">
+            <h2>Process Single URL</h2>
+            <form id="singleForm">
+                <div class="form-group">
+                    <label for="urlInput">YouTube or SoundCloud URL:</label>
+                    <input
+                        type="url"
+                        id="urlInput"
+                        placeholder="https://youtube.com/watch?v=..."
+                        required
+                    >
+                    <span class="error-message" id="urlError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="modelSelect">Model:</label>
+                    <select id="modelSelect">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                    <small class="form-hint">
+                        htdemucs = balanced | htdemucs_ft = highest quality | htdemucs_6s = 6 stems | mdx_extra = fastest
+                    </small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    🚀 Split Stems
+                </button>
+            </form>
+        </section>
+
+        <!-- Batch Processing Card -->
+        <section class="card">
+            <h2>Batch Process Multiple URLs</h2>
+            <form id="batchForm">
+                <div class="form-group">
+                    <label for="batchInput">URLs (one per line):</label>
+                    <textarea
+                        id="batchInput"
+                        rows="5"
+                        placeholder="https://youtube.com/watch?v=...&#10;https://soundcloud.com/...&#10;https://youtu.be/..."
+                    ></textarea>
+                    <small class="form-hint">Paste multiple URLs, each on a new line</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="batchModelSelect">Model:</label>
+                    <select id="batchModelSelect">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    📋 Process Batch
+                </button>
+            </form>
+        </section>
+
+        <!-- Active Jobs Section -->
+        <section class="card" id="activeSection">
+            <h2>📊 Active Jobs</h2>
+            <div id="activeJobs">
+                <p class="empty-state">No active jobs</p>
+            </div>
+        </section>
+
+        <!-- Completed Jobs Section -->
+        <section class="card" id="historySection">
+            <h2>✅ Completed Jobs</h2>
+            <div id="completedJobs">
+                <p class="empty-state">No completed jobs</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>Stem Splitter Pro v1.0 | Powered by Demucs AI</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
