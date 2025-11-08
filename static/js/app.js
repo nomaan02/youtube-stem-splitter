@@ -1,64 +1,50 @@
-// ===== GLOBAL STATE =====
+// =========================================
+// STEM SPLITTER PRO - TERMINAL STYLE JS
+// =========================================
+
+// Global state
 let activePolling = new Set();
 let models = [];
+let startTime = Date.now();
 
-// ===== INITIALIZATION =====
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
 
+// ============= INITIALIZATION =============
 async function initializeApp() {
-    console.log('Initializing Stem Splitter Pro...');
-
     // Load models
     await loadModels();
-
+    
     // Setup event listeners
     setupEventListeners();
-
-    // Load dark mode preference
-    loadDarkMode();
-
+    
+    // Start system monitoring
+    startSystemMonitoring();
+    
     // Load history
     await loadHistory();
-
-    // Start auto-refresh for history
-    setInterval(loadHistory, 30000); // Every 30 seconds
-
-    console.log('Initialization complete!');
+    
+    // Start auto-refresh
+    setInterval(loadHistory, 30000);
 }
 
-// ===== LOAD MODELS =====
-async function loadModels() {
-    try {
-        const response = await fetch('/api/models');
-        models = await response.json();
-
-        const selects = ['modelSelect', 'batchModelSelect'];
-        selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            select.innerHTML = models.map(model =>
-                `<option value="${model}">${model}</option>`
-            ).join('');
-        });
-
-        console.log('Models loaded:', models);
-    } catch (error) {
-        console.error('Failed to load models:', error);
-        showToast('Failed to load models', 'error');
-    }
-}
-
-// ===== EVENT LISTENERS =====
+// ============= EVENT LISTENERS =============
 function setupEventListeners() {
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+    
     // Single URL form
-    document.getElementById('singleForm').addEventListener('submit', async (e) => {
+    document.getElementById('processForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const url = document.getElementById('urlInput').value.trim();
+        const url = document.getElementById('urlInput').value;
         const model = document.getElementById('modelSelect').value;
         await processSingleURL(url, model);
     });
-
+    
     // Batch form
     document.getElementById('batchForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -69,284 +55,361 @@ function setupEventListeners() {
         const model = document.getElementById('batchModelSelect').value;
         await processBatchURLs(urls, model);
     });
-
-    // Dark mode toggle
-    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+    
+    // Clear history
+    document.getElementById('clearHistory')?.addEventListener('click', clearHistory);
 }
 
-// ===== URL VALIDATION =====
+// ============= TAB SWITCHING =============
+function switchTab(tabName) {
+    // Update tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+    
+    // Update content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `${tabName}-tab`);
+    });
+}
+
+// ============= MODELS =============
+async function loadModels() {
+    try {
+        const response = await fetch('/api/models');
+        models = await response.json();
+        
+        // Populate selects
+        const selects = [
+            document.getElementById('modelSelect'),
+            document.getElementById('batchModelSelect')
+        ];
+        
+        selects.forEach(select => {
+            select.innerHTML = models.map(model => {
+                let label = model;
+                if (model === 'htdemucs') label += ' [BALANCED]';
+                if (model === 'htdemucs_ft') label += ' [QUALITY]';
+                if (model === 'htdemucs_6s') label += ' [MAXIMUM]';
+                return `<option value="${model}">${label}</option>`;
+            }).join('');
+        });
+    } catch (error) {
+        showToast('Failed to load models', 'error');
+    }
+}
+
+// ============= URL VALIDATION =============
 function validateURL(url) {
     const pattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|soundcloud\.com|m\.soundcloud\.com)\/.+$/;
     return pattern.test(url);
 }
 
-// ===== PROCESS SINGLE URL =====
+// ============= PROCESS SINGLE URL =============
 async function processSingleURL(url, model) {
-    // Validate
     if (!validateURL(url)) {
-        document.getElementById('urlError').textContent = 'Invalid YouTube or SoundCloud URL';
-        document.getElementById('urlError').classList.add('show');
+        showToast('INVALID_URL_FORMAT', 'error');
         return;
     }
-
-    document.getElementById('urlError').classList.remove('show');
-
+    
     try {
         const response = await fetch('/api/process', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url, model })
         });
-
+        
         const data = await response.json();
-
+        
         if (data.success) {
-            showToast('Processing started!', 'success');
+            showToast('PROCESS_INITIATED', 'success');
             document.getElementById('urlInput').value = '';
-
-            // Start polling this job
             startPolling(data.job_id);
         } else {
-            showToast('Failed to start processing', 'error');
+            showToast('PROCESS_FAILED', 'error');
         }
     } catch (error) {
-        console.error('Network error:', error);
-        showToast('Network error', 'error');
+        showToast('NETWORK_ERROR', 'error');
     }
 }
 
-// ===== PROCESS BATCH URLS =====
+// ============= PROCESS BATCH =============
 async function processBatchURLs(urls, model) {
-    // Validate all URLs
     const validUrls = urls.filter(validateURL);
-
+    
     if (validUrls.length === 0) {
-        showToast('No valid URLs found', 'error');
+        showToast('NO_VALID_URLS', 'error');
         return;
     }
-
+    
     if (validUrls.length < urls.length) {
-        showToast(`${urls.length - validUrls.length} invalid URLs skipped`, 'warning');
+        showToast(`${urls.length - validUrls.length} INVALID_URLS_SKIPPED`, 'info');
     }
-
+    
     try {
         const response = await fetch('/api/batch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ urls: validUrls, model })
         });
-
+        
         const data = await response.json();
-
+        
         if (data.success) {
-            showToast(`${data.job_ids.length} jobs started!`, 'success');
+            showToast(`${data.job_ids.length} JOBS_INITIATED`, 'success');
             document.getElementById('batchInput').value = '';
-
-            // Start polling all jobs
             data.job_ids.forEach(id => startPolling(id));
         }
     } catch (error) {
-        console.error('Network error:', error);
-        showToast('Network error', 'error');
+        showToast('NETWORK_ERROR', 'error');
     }
 }
 
-// ===== POLLING =====
+// ============= STATUS POLLING =============
 function startPolling(jobId) {
     if (activePolling.has(jobId)) return;
-
+    
     activePolling.add(jobId);
-    console.log('Started polling job:', jobId);
-
+    
     const poll = async () => {
         try {
             const response = await fetch(`/api/status/${jobId}`);
             const job = await response.json();
-
+            
             updateJobDisplay(job);
-
-            // Stop polling if complete or error
+            
             if (job.status === 'complete' || job.status === 'error') {
                 activePolling.delete(jobId);
-                console.log('Stopped polling job:', jobId, 'Status:', job.status);
                 await loadHistory();
             } else {
-                setTimeout(poll, 2000); // Poll every 2 seconds
+                setTimeout(poll, 2000);
             }
         } catch (error) {
-            console.error('Polling error:', error);
             activePolling.delete(jobId);
         }
     };
-
+    
     poll();
 }
 
-// ===== UPDATE JOB DISPLAY =====
+// ============= UPDATE JOB DISPLAY =============
 function updateJobDisplay(job) {
     let container = document.getElementById('activeJobs');
     let jobCard = document.getElementById(`job-${job.id}`);
-
-    // Create card if it doesn't exist
+    
     if (!jobCard) {
         jobCard = createJobCard(job);
-
-        // Remove empty state if present
+        container.appendChild(jobCard);
+        
+        // Remove empty state
         const emptyState = container.querySelector('.empty-state');
         if (emptyState) emptyState.remove();
-
-        container.appendChild(jobCard);
     }
-
-    // Update card content
-    const titleEl = jobCard.querySelector('.job-title');
-    if (job.title && titleEl.textContent !== job.title) {
-        titleEl.textContent = job.title;
-    }
-
+    
+    // Update card
     const statusBadge = jobCard.querySelector('.status-badge');
-    statusBadge.textContent = job.status;
-    statusBadge.className = `status-badge status-${job.status}`;
-
+    statusBadge.textContent = job.status.toUpperCase();
+    statusBadge.className = `status-badge ${job.status}`;
+    
     const progressFill = jobCard.querySelector('.progress-fill');
-    progressFill.style.width = `${job.progress}%`;
-
-    const message = jobCard.querySelector('.job-message');
-    message.textContent = job.message;
-
+    if (progressFill) {
+        progressFill.style.width = `${job.progress}%`;
+    }
+    
+    const jobInfo = jobCard.querySelector('.job-info');
+    if (jobInfo) {
+        jobInfo.textContent = `${job.message} | ${job.progress}%`;
+    }
+    
     // If complete, add download buttons
     if (job.status === 'complete') {
         addDownloadButtons(jobCard, job);
     }
+    
+    updateCounters();
 }
 
-// ===== CREATE JOB CARD =====
+// ============= CREATE JOB CARD =============
 function createJobCard(job) {
     const card = document.createElement('div');
     card.className = 'job-card';
     card.id = `job-${job.id}`;
-
+    
     card.innerHTML = `
         <div class="job-header">
-            <div class="job-title">${job.title || job.url}</div>
-            <span class="status-badge status-${job.status}">${job.status}</span>
+            <div class="job-title">[►] ${job.title || job.url}</div>
+            <span class="status-badge ${job.status}">${job.status.toUpperCase()}</span>
         </div>
+        <div class="job-info">${job.message} | ${job.progress}%</div>
         <div class="progress-bar">
             <div class="progress-fill" style="width: ${job.progress}%"></div>
         </div>
-        <div class="job-message">${job.message}</div>
         <div class="download-buttons"></div>
     `;
-
+    
     return card;
 }
 
-// ===== ADD DOWNLOAD BUTTONS =====
+// ============= ADD DOWNLOAD BUTTONS =============
 function addDownloadButtons(card, job) {
     const container = card.querySelector('.download-buttons');
-    if (container.children.length > 0) return; // Already added
-
+    if (container.children.length > 0) return;
+    
     const stems = Object.keys(job.stems);
     stems.forEach(stem => {
         const btn = document.createElement('button');
-        btn.className = 'btn-download';
-        btn.textContent = `📥 ${stem}`;
+        btn.className = 'download-btn';
+        btn.textContent = `[DL] ${stem}`;
         btn.onclick = () => downloadStem(job.id, stem);
         container.appendChild(btn);
     });
 }
 
-// ===== DOWNLOAD STEM =====
+// ============= DOWNLOAD STEM =============
 function downloadStem(jobId, stem) {
     const url = `/api/download/${jobId}/${stem}`;
     const a = document.createElement('a');
     a.href = url;
     a.download = `${stem}.wav`;
     a.click();
-    showToast(`Downloading ${stem}...`, 'info');
+    showToast(`DOWNLOADING: ${stem}`, 'info');
 }
 
-// ===== LOAD HISTORY =====
+// ============= LOAD HISTORY =============
 async function loadHistory() {
     try {
         const response = await fetch('/api/history');
         const jobs = await response.json();
-
-        const container = document.getElementById('completedJobs');
-
+        
+        const container = document.getElementById('historyJobs');
+        
         if (jobs.length === 0) {
-            container.innerHTML = '<p class="empty-state">No completed jobs</p>';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-icon">⌀</span>
+                    <p>NO_HISTORY</p>
+                </div>
+            `;
             return;
         }
-
+        
         container.innerHTML = jobs.map(job => `
             <div class="job-card" id="history-${job.id}">
                 <div class="job-header">
-                    <div class="job-title">${job.title}</div>
-                    <span class="status-badge status-complete">complete</span>
+                    <div class="job-title">[✓] ${job.title}</div>
+                    <span class="status-badge complete">COMPLETE</span>
                 </div>
-                <p class="job-message">Processed: ${formatTimestamp(job.timestamp)}</p>
+                <div class="job-info">${formatTimestamp(job.timestamp)}</div>
                 <div class="download-buttons">
                     ${Object.keys(job.stems).map(stem => `
-                        <button class="btn-download" onclick="downloadStem('${job.id}', '${stem}')">
-                            📥 ${stem}
+                        <button class="download-btn" onclick="downloadStem('${job.id}', '${stem}')">
+                            [DL] ${stem}
                         </button>
                     `).join('')}
                 </div>
             </div>
         `).join('');
+        
+        updateCounters();
     } catch (error) {
         console.error('Failed to load history:', error);
     }
 }
 
-// ===== TOAST NOTIFICATIONS =====
+// ============= CLEAR HISTORY =============
+function clearHistory() {
+    if (!confirm('CLEAR_ALL_HISTORY?')) return;
+    
+    const container = document.getElementById('historyJobs');
+    container.innerHTML = `
+        <div class="empty-state">
+            <span class="empty-icon">⌀</span>
+            <p>NO_HISTORY</p>
+        </div>
+    `;
+    
+    showToast('HISTORY_CLEARED', 'success');
+    updateCounters();
+}
+
+// ============= UPDATE COUNTERS =============
+function updateCounters() {
+    const activeJobs = document.querySelectorAll('#activeJobs .job-card').length;
+    const completeJobs = document.querySelectorAll('#completedJobs .job-card').length;
+    const historyJobs = document.querySelectorAll('#historyJobs .job-card').length;
+    
+    document.getElementById('activeCount').textContent = activeJobs;
+    document.getElementById('completeCount').textContent = completeJobs;
+    document.getElementById('totalJobs').textContent = historyJobs;
+}
+
+// ============= SYSTEM MONITORING =============
+function startSystemMonitoring() {
+    updateTime();
+    setInterval(updateTime, 1000);
+    
+    updateUptime();
+    setInterval(updateUptime, 1000);
+}
+
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toTimeString().split(' ')[0];
+    document.getElementById('timeStatus').textContent = timeString;
+}
+
+function updateUptime() {
+    const uptime = Date.now() - startTime;
+    const hours = Math.floor(uptime / 3600000);
+    const minutes = Math.floor((uptime % 3600000) / 60000);
+    const seconds = Math.floor((uptime % 60000) / 1000);
+    
+    const uptimeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    document.getElementById('uptime').textContent = uptimeString;
+}
+
+// ============= TOAST NOTIFICATIONS =============
 function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-
-    const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ';
-    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-
+    
+    const icon = type === 'success' ? '[✓]' : type === 'error' ? '[✕]' : '[i]';
+    toast.textContent = `${icon} ${message}`;
+    
     container.appendChild(toast);
-
+    
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
+        toast.style.animation = 'toastOut 0.3s ease';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
-// ===== DARK MODE =====
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDark);
-
-    const toggle = document.getElementById('darkModeToggle');
-    toggle.textContent = isDark ? '☀️' : '🌙';
-}
-
-function loadDarkMode() {
-    const isDark = localStorage.getItem('darkMode') === 'true';
-    if (isDark) {
-        document.body.classList.add('dark-mode');
-        document.getElementById('darkModeToggle').textContent = '☀️';
-    }
-}
-
-// ===== UTILITIES =====
+// ============= UTILITIES =============
 function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now - date;
-
+    
     const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-
+    if (minutes < 1) return 'JUST_NOW';
+    if (minutes < 60) return `${minutes}m AGO`;
+    
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-
-    return date.toLocaleDateString();
+    if (hours < 24) return `${hours}h AGO`;
+    
+    const days = Math.floor(hours / 24);
+    return `${days}d AGO`;
 }
+
+// Add CSS animation for toast out
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes toastOut {
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+`;
+document.head.appendChild(style);

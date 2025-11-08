@@ -3,106 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stem Splitter Pro</title>
+    <title>STEM_SPLITTER_PRO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <h1>🎵 Stem Splitter Pro</h1>
-            <button id="darkModeToggle" class="btn-icon" title="Toggle dark mode">🌙</button>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container">
-
-        <!-- Single URL Processing Card -->
-        <section class="card">
-            <h2>Process Single URL</h2>
-            <form id="singleForm">
-                <div class="form-group">
-                    <label for="urlInput">YouTube or SoundCloud URL:</label>
-                    <input
-                        type="url"
-                        id="urlInput"
-                        placeholder="https://youtube.com/watch?v=..."
-                        required
-                    >
-                    <span class="error-message" id="urlError"></span>
-                </div>
-
-                <div class="form-group">
-                    <label for="modelSelect">Model:</label>
-                    <select id="modelSelect">
-                        <!-- Populated by JavaScript -->
-                    </select>
-                    <small class="form-hint">
-                        htdemucs = balanced | htdemucs_ft = highest quality | htdemucs_6s = 6 stems | mdx_extra = fastest
-                    </small>
-                </div>
-
-                <button type="submit" class="btn btn-primary">
-                    🚀 Split Stems
-                </button>
-            </form>
-        </section>
-
-        <!-- Batch Processing Card -->
-        <section class="card">
-            <h2>Batch Process Multiple URLs</h2>
-            <form id="batchForm">
-                <div class="form-group">
-                    <label for="batchInput">URLs (one per line):</label>
-                    <textarea
-                        id="batchInput"
-                        rows="5"
-                        placeholder="https://youtube.com/watch?v=...&#10;https://soundcloud.com/...&#10;https://youtu.be/..."
-                    ></textarea>
-                    <small class="form-hint">Paste multiple URLs, each on a new line</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="batchModelSelect">Model:</label>
-                    <select id="batchModelSelect">
-                        <!-- Populated by JavaScript -->
-                    </select>
-                </div>
-
-                <button type="submit" class="btn btn-primary">
-                    📋 Process Batch
-                </button>
-            </form>
-        </section>
-
-        <!-- Active Jobs Section -->
-        <section class="card" id="activeSection">
-            <h2>📊 Active Jobs</h2>
-            <div id="activeJobs">
-                <p class="empty-state">No active jobs</p>
+    <!-- Scanline overlay effect -->
+    <div class="scanlines"></div>
+    
+    <!-- Noise texture overlay -->
+    <div class="noise"></div>
+    
+    <!-- Terminal Window -->
+    <div class="terminal-window">
+        
+        <!-- Header -->
+        <header class="terminal-header">
+            <div class="window-controls">
+                <span class="control close"></span>
+                <span class="control minimize"></span>
+                <span class="control maximize"></span>
             </div>
-        </section>
-
-        <!-- Completed Jobs Section -->
-        <section class="card" id="historySection">
-            <h2>✅ Completed Jobs</h2>
-            <div id="completedJobs">
-                <p class="empty-state">No completed jobs</p>
+            <div class="terminal-title">
+                <span class="prompt">▪</span>
+                <span class="title-text">STEM_SPLITTER_PRO</span>
+                <span class="version">v1.0.0</span>
             </div>
-        </section>
+            <div class="system-status">
+                <span class="status-item" id="gpuStatus">
+                    <span class="status-dot gpu"></span>GPU
+                </span>
+                <span class="status-item" id="cudaStatus">
+                    <span class="status-dot cuda"></span>CUDA_13.0
+                </span>
+                <span class="status-item" id="timeStatus">00:00:00</span>
+            </div>
+        </header>
 
-    </main>
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+            <button class="tab active" data-tab="process">
+                <span class="tab-prompt">$</span> PROCESS
+            </button>
+            <button class="tab" data-tab="batch">
+                <span class="tab-prompt">$</span> BATCH
+            </button>
+            <button class="tab" data-tab="history">
+                <span class="tab-prompt">$</span> HISTORY
+            </button>
+            <div class="tab-indicator"></div>
+        </nav>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>Stem Splitter Pro v1.0 | Powered by Demucs AI</p>
-        </div>
-    </footer>
+        <!-- Main Content Area -->
+        <main class="content-area">
+            
+            <!-- Process Tab -->
+            <section class="tab-content active" id="process-tab">
+                
+                <!-- Input Panel -->
+                <div class="glass-panel input-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">►</span>
+                        <h2>INPUT</h2>
+                    </div>
+                    <form id="processForm" class="terminal-form">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <span class="prompt">$</span> URL_INPUT
+                            </label>
+                            <input 
+                                type="url" 
+                                id="urlInput" 
+                                class="terminal-input"
+                                placeholder="https://youtube.com/watch?v=..."
+                                required
+                            >
+                            <span class="input-cursor">_</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <span class="prompt">$</span> MODEL_SELECT
+                            </label>
+                            <select id="modelSelect" class="terminal-select">
+                                <option value="htdemucs">htdemucs [BALANCED]</option>
+                                <option value="htdemucs_ft">htdemucs_ft [QUALITY]</option>
+                                <option value="htdemucs_6s">htdemucs_6s [MAXIMUM]</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="terminal-button primary">
+                            <span class="button-icon">►</span>
+                            EXECUTE_STEM_SPLIT
+                            <span class="button-glow"></span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Active Processes Panel -->
+                <div class="glass-panel status-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">◉</span>
+                        <h2>ACTIVE_PROCESSES</h2>
+                        <span class="panel-count" id="activeCount">0</span>
+                    </div>
+                    <div id="activeJobs" class="jobs-container">
+                        <div class="empty-state">
+                            <span class="empty-icon">⌀</span>
+                            <p>NO_ACTIVE_PROCESSES</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output Ready Panel -->
+                <div class="glass-panel output-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">✓</span>
+                        <h2>OUTPUT_READY</h2>
+                        <span class="panel-count" id="completeCount">0</span>
+                    </div>
+                    <div id="completedJobs" class="jobs-container">
+                        <div class="empty-state">
+                            <span class="empty-icon">⌀</span>
+                            <p>NO_COMPLETED_JOBS</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Batch Tab -->
+            <section class="tab-content" id="batch-tab">
+                
+                <div class="glass-panel input-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">⊞</span>
+                        <h2>BATCH_PROCESS</h2>
+                    </div>
+                    <form id="batchForm" class="terminal-form">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <span class="prompt">$</span> URL_LIST (ONE_PER_LINE)
+                            </label>
+                            <textarea 
+                                id="batchInput" 
+                                class="terminal-textarea"
+                                rows="8"
+                                placeholder="https://youtube.com/watch?v=...&#10;https://soundcloud.com/...&#10;https://youtube.com/watch?v=..."
+                            ></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <span class="prompt">$</span> MODEL_SELECT
+                            </label>
+                            <select id="batchModelSelect" class="terminal-select">
+                                <option value="htdemucs">htdemucs [BALANCED]</option>
+                                <option value="htdemucs_ft">htdemucs_ft [QUALITY]</option>
+                                <option value="htdemucs_6s">htdemucs_6s [MAXIMUM]</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="terminal-button primary">
+                            <span class="button-icon">⊞</span>
+                            EXECUTE_BATCH
+                            <span class="button-glow"></span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Batch Status -->
+                <div class="glass-panel status-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">◉</span>
+                        <h2>BATCH_STATUS</h2>
+                    </div>
+                    <div id="batchJobs" class="jobs-container">
+                        <div class="empty-state">
+                            <span class="empty-icon">⌀</span>
+                            <p>NO_BATCH_JOBS</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- History Tab -->
+            <section class="tab-content" id="history-tab">
+                
+                <div class="glass-panel history-panel">
+                    <div class="panel-header">
+                        <span class="panel-icon">⌚</span>
+                        <h2>HISTORY</h2>
+                        <button class="terminal-button small" id="clearHistory">
+                            CLEAR_ALL
+                        </button>
+                    </div>
+                    <div id="historyJobs" class="jobs-container">
+                        <div class="empty-state">
+                            <span class="empty-icon">⌀</span>
+                            <p>NO_HISTORY</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- Footer Status Bar -->
+        <footer class="terminal-footer">
+            <div class="footer-section">
+                <span class="footer-item">
+                    <span class="footer-label">SYSTEM:</span>
+                    <span class="footer-value" id="systemStatus">OPERATIONAL</span>
+                </span>
+                <span class="footer-item">
+                    <span class="footer-label">GPU:</span>
+                    <span class="footer-value" id="gpuName">RTX_4070</span>
+                </span>
+                <span class="footer-item">
+                    <span class="footer-label">VRAM:</span>
+                    <span class="footer-value" id="vramUsage">0.0GB/12.0GB</span>
+                </span>
+            </div>
+            <div class="footer-section">
+                <span class="footer-item">
+                    <span class="footer-label">UPTIME:</span>
+                    <span class="footer-value" id="uptime">00:00:00</span>
+                </span>
+                <span class="footer-item">
+                    <span class="footer-label">JOBS:</span>
+                    <span class="footer-value" id="totalJobs">0</span>
+                </span>
+            </div>
+        </footer>
+
+    </div>
 
     <!-- Toast Notification Container -->
-    <div id="toastContainer"></div>
+    <div id="toastContainer" class="toast-container"></div>
 
     <script src="/static/js/app.js"></script>
 </body>

@@ -33,6 +33,13 @@ logs/
 *.flac
 *.log
 
+# PyInstaller
+build/
+dist/
+*.spec.bak
+build_log.txt
+test_output*.html
+
 # IDEs
 .vscode/
 .idea/

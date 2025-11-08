@@ -23,6 +23,10 @@ import config
 app = Flask(__name__)
 CORS(app)
 
+# Disable template caching for development
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 # Initialize components
 downloader = AudioDownloader(config.TEMP_DIR, config.MAX_RETRIES)
 separator = StemSeparator(config.DEFAULT_MODEL, config.DEVICE)
